@@ -55,23 +55,12 @@ class Binomial(Junction):
         if k>n or max(k, n-k).bit_length() * min(k, n-k) > maxPowerValue:
             return 1 # always already satisfied
         return int(round(binom(n, k)))
-
-class NumberNode:
-    def __init__(self, number:int, childIndex1:int, childIndex2:int, method:str):
-        self.number = number
-        self.childIndex1 = childIndex1
-        self.childIndex2 = childIndex2
-        self.method=method
-
-    @classmethod        
-    def root(cls, number:int):
-        return cls(number, None, None, "root")
     
-    def __str__(self):
-        if self.childIndex1 is None:
-            return f"{self.number}"
-        else:
-            return f" {self.number} = {self.method}({numberNodes[self.childIndex1].__str__()}, {numberNodes[self.childIndex2].__str__()}) "
+def nodeToStr(node):
+    if node[1] is None:
+        return f"{node[0]}"
+    else:
+        return f" {node[0]} = {node[3]}({nodeToStr(numberNodes[node[1]])}, {nodeToStr(numberNodes[node[2]])}) "
 
 funcs = [Binomial, Power, Divide, Subtract, Multiply, Add]
 
@@ -89,7 +78,7 @@ if __name__ == "__main__":
             numberNodes = pickle.load(file)
     else:
         numbers = set([i for i in range(1, 10)])
-        numberNodes : List[NumberNode] = [NumberNode.root(number) for number in numbers]
+        numberNodes : List[List] = [[number, None, None, "root"] for number in numbers]
         startingIndices = [0]
 
     targetNumber = 3026
@@ -116,7 +105,7 @@ if __name__ == "__main__":
                             result = func.use(node1.number, node2.number)
                             if result not in numbers:
                                 numbers.add(result)
-                                newNode = NumberNode(result, index1, index2, func.__name__)
+                                newNode = [result, index1, index2, func.__name__]
                                 if result == targetNumber:
                                     print(newNode)
                                     print()
@@ -126,7 +115,7 @@ if __name__ == "__main__":
                             result = func.use(node1.number, node2.number)
                             if result not in numbers:
                                 numbers.add(result)
-                                newNode = NumberNode(result, index1, index2, func.__name__)
+                                newNode = [result, index1, index2, func.__name__]
                                 if result == targetNumber:
                                     print(newNode)
                                     print()
@@ -135,7 +124,7 @@ if __name__ == "__main__":
                             result = func.use(node2.number, node1.number)
                             if result not in numbers:
                                 numbers.add(result)
-                                newNode = NumberNode(result, index2, index1, func.__name__)
+                                newNode = [result, index2, index1, func.__name__]
                                 if result == targetNumber:
                                     print(newNode)
                                     print()
