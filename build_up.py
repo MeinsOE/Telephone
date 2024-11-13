@@ -1,7 +1,9 @@
+import numpy as np
 from scipy.special import binom
 from typing import List
 import pickle
 import os
+from enum import Enum
 
 class Junction:
     isSymmetric:bool = False
@@ -43,7 +45,7 @@ class Power(Junction):
     isSymmetric = False
     
     def use(base, exponent):
-        if base.bit_length() * exponent > maxPowerValue:
+        if int(base).bit_length() * exponent > maxPowerValue:
             return 1 # always already satisfied
         return base**exponent
 
@@ -51,97 +53,134 @@ class Binomial(Junction):
     isSymmetric = False
     
     def use(n, k):
-        if k>n or max(k, n-k).bit_length() * min(k, n-k) > maxPowerValue:
+        if k>n or int(max(k, n-k)).bit_length() * min(k, n-k) > maxPowerValue:
             return 1 # always already satisfied
         return int(round(binom(n, k)))
 
-class NumberNode:
-    def __init__(self, number:int, childIndex1:int, childIndex2:int, method:str):
-        self.number = number
-        self.childIndex1 = childIndex1
-        self.childIndex2 = childIndex2
-        self.method=method
+class NumberGraph:
+    def __init__(self, numberNodes, funcs, indices=None, dtype=np.uint64):
+        self.numberNodes = np.array(numberNodes, dtype=dtype)
+        self.funcs = funcs
+        if indices is None:
+            indices = [0, len(numberNodes)]
+        self.indices = np.array(indices, dtype=dtype)
+        self.dtype=dtype
 
-    @classmethod        
-    def root(cls, number:int):
-        return cls(number, None, None, "root")
-    
-    def __str__(self):
-        if self.childIndex1 is None:
-            return f"{self.number}"
+    def print(self, index):
+        numberNode = self.numberNodes[index]
+        if numberNode[Column.FUNC] == len(self.funcs):
+            print(f"{numberNode[Column.NUMBER]}")
         else:
-            return f" {self.number} = {self.method}({numberNodes[self.childIndex1].__str__()}, {numberNodes[self.childIndex2].__str__()}) "
+            print(f" {numberNode[Column.NUMBER]} = {numberNode[Column.FUNC]}({self.print(numberNode[Column.CHILD1])}, {self.print(numberNode[Column.CHILD2])}) ")
 
-funcs = [Add, Multiply, Subtract, Divide, Power, Binomial]
+    def indexOf(self, number:int) -> int:
+        for i in range(len(self.indices)-1):
+            if number <= self.numberNodes[self.indices[i+1]-1, Column.NUMBER]:
+                index = self.binarySearch(number, self.indices[i], self.indices[i+1])
+                if index != -1:
+                    return index
+        return -1
+
+    def binarySearch(self, number:int, lower:int, upper:int) -> int:
+        if upper-lower <= 1:
+            if self.numberNodes[lower, Column.NUMBER] == number:
+                return lower
+            return -1
+        middle = (upper+lower)//2
+        if self.numberNodes[middle, Column.NUMBER] == number:
+            return middle
+        if number < self.numberNodes[middle, Column.NUMBER]:
+            return self.binarySearch(number, lower, middle)
+        else:
+            return self.binarySearch(number, middle+1, upper)
+    
+    def searchAndPrint(self, number:int) -> int:
+        index = self.indexOf(number)
+        if index != -1:
+            self.print(index)
+        return index
+    
+    def addComplexity(self, target) -> bool:
+        found = False
+        self.newNodes = []
+        for rangeIndex in range(int(len(self.indices)/2)):
+            for index1 in range(self.indices[rangeIndex], self.indices[rangeIndex+1]):
+                print (f"\033[A{rangeIndex+1}: {index1 - self.indices[rangeIndex] + 1} / {self.indices[rangeIndex+1] - self.indices[rangeIndex]}")
+                for index2 in range(self.indices[-rangeIndex-2], self.indices[-rangeIndex-1]):
+                    for funcIndex, func in enumerate(self.funcs):
+                        if func.isSymmetric:
+                            self.checkFunc(target, index1, index2, funcIndex, func)
+                        else:
+                            self.checkFunc(target, index1, index2, funcIndex, func)
+                            self.checkFunc(target, index2, index1, funcIndex, func)
+        self.addNewNodes()
+        return found
+
+    def checkFunc(self, targetNumber, index1, index2, funcIndex, func):
+        result = func.use(self.numberNodes[index1][Column.NUMBER], self.numberNodes[index2][Column.NUMBER])
+        newNode = [result, index1, index2, funcIndex]
+        if self.indexOf(result) == -1:
+            index = self.insertNewNode(newNode)
+            if index != -1 and result == targetNumber:
+                self.print(index)
+                print()
+    
+    def insertNewNode(self, newNode) -> int:
+        if len(self.newNodes) == 0:
+            self.newNodes = [newNode]
+            return 0
+        if newNode[Column.NUMBER] < self.newNodes[0][Column.NUMBER] :
+            self.newNodes = [newNode] + self.newNodes
+            return 0
+        if newNode[Column.NUMBER] > self.newNodes[-1][Column.NUMBER]:
+            self.newNodes += [newNode]
+            return len(self.newNodes)-1
+        return self.insertBinary(newNode, 0, len(self.newNodes))
+    
+    def insertBinary(self, newNode, lower:int, upper:int) -> int:
+        if lower == upper-1:
+            if self.newNodes[lower][Column.NUMBER] == newNode[Column.NUMBER]:
+                return -1
+            self.newNodes.insert(lower + 1, newNode)
+            return lower + 1
+        middle = (upper+lower)//2
+        if newNode[Column.NUMBER] < self.newNodes[middle][Column.NUMBER]:
+            return self.insertBinary(newNode, lower, middle)
+        else:
+            return self.insertBinary(newNode, middle, upper)
+        
+    def addNewNodes(self):
+        self.numberNodes = np.concatenate((self.numberNodes, np.array(self.newNodes, dtype=self.dtype)), dtype=self.dtype)
+        self.indices = np.concatenate((self.indices, np.array([len(self.numberNodes)], dtype=self.dtype)), dtype=self.dtype)
+    
+    def save(self, dirPath:str):
+        np.save(os.path.join(dirPath, "nodes.npy"), self.numberNodes)
+        np.save(os.path.join(dirPath, "indices.npy"), self.indices)
+
+    def tryLoad(self, dirPath:str):
+        if os.path.isfile(os.path.join(dirPath, "nodes.npy")):
+            self.numberNodes = np.load(os.path.join(dirPath, "nodes.npy"))
+            self.dtype=self.numberNodes.dtype
+            self.indices = np.load(os.path.join(dirPath, "indices.npy"))
+
+class Column():
+    NUMBER = 0
+    CHILD1 = 1
+    CHILD2 = 2
+    FUNC = 3
+
+funcs = [Binomial, Power, Divide, Subtract, Multiply, Add]
 
 if __name__ == "__main__":
-    numbersFile = "build_up_data/numbers.pkl"
-    nodesFile = "build_up_data/nodes.pkl"
-    indicesFile = "build_up_data/indices.pkl"
-    if os.path.isfile(numbersFile):
-        with open(numbersFile, "rb") as file:
-            numbers = pickle.load(file)
-        with open(indicesFile, "rb") as file:
-            startingIndices = pickle.load(file)
-        with open(nodesFile, "rb") as file:
-            numberNodes = pickle.load(file)
-    else:
-        numbers = set([i for i in range(1, 10)])
-        numberNodes : List[NumberNode] = [NumberNode.root(number) for number in numbers]
-        startingIndices = [0]
+    numberGraph = NumberGraph([[number, 0, 0, len(funcs)] for number in range(0, 10)], funcs)
+    dirPath = "build_up_data"
+    numberGraph.tryLoad(dirPath)
 
-    targetNumber = 31445304
-    found = False
-    if targetNumber in numbers:
-        for node in numberNodes:
-            if node.number == targetNumber:
-                print(node)
-                found = True
+    target = 31445304
+    found = numberGraph.searchAndPrint(target) != -1
     while not found:
-        startingIndices += [len(numberNodes)]
-        print(f"complexity={len(startingIndices)}")
-        print(f"{startingIndices[-1]}")
-        print(int(len(startingIndices)/2))
+        print(f"complexity={len(numberGraph.indices)}")
+        print(f"{numberGraph.indices[-1]}")
         print()
-        for rangeIndex in range(int(len(startingIndices)/2)):
-            for index1 in range(startingIndices[rangeIndex], startingIndices[rangeIndex+1]):
-                node1 = numberNodes[index1]
-                print (f"\033[A{rangeIndex+1}: {index1 - startingIndices[rangeIndex] + 1} / {startingIndices[rangeIndex+1] - startingIndices[rangeIndex]}")
-                for index2 in range(startingIndices[-rangeIndex-2], startingIndices[-rangeIndex-1]):
-                    node2 = numberNodes[index2]
-                    for func in funcs:
-                        if func.isSymmetric:
-                            result = func.use(node1.number, node2.number)
-                            if result not in numbers:
-                                numbers.add(result)
-                                newNode = NumberNode(result, index1, index2, func.__name__)
-                                if result == targetNumber:
-                                    print(newNode)
-                                    print()
-                                    found = True
-                                numberNodes += [newNode]
-                        else:
-                            result = func.use(node1.number, node2.number)
-                            if result not in numbers:
-                                numbers.add(result)
-                                newNode = NumberNode(result, index1, index2, func.__name__)
-                                if result == targetNumber:
-                                    print(newNode)
-                                    print()
-                                    found = True
-                                numberNodes += [newNode]
-                            result = func.use(node2.number, node1.number)
-                            if result not in numbers:
-                                numbers.add(result)
-                                newNode = NumberNode(result, index2, index1, func.__name__)
-                                if result == targetNumber:
-                                    print(newNode)
-                                    print()
-                                    found = True
-                                numberNodes += [newNode]
-        with open(numbersFile, "wb") as file:
-            pickle.dump(numbers, file)
-        with open(nodesFile, "wb") as file:
-            pickle.dump(numberNodes, file)
-        with open(indicesFile, "wb") as file:
-            pickle.dump(startingIndices, file)
+        numberGraph.addComplexity(target)
+        numberGraph.save(dirPath)
