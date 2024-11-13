@@ -23,17 +23,17 @@ class Multiply(Junction):
         return a*b
 
 class Subtract(Junction):
-    isSymmetric = False
+    isSymmetric = True
 
     def use(a, b):
-        if b>a:
-            return 1 # always already satisfied
-        return a-b
+        return abs(a-b)
 
 class Divide(Junction):
-    isSymmetric = False
+    isSymmetric = True
     
-    def use(numerator, denominator):
+    def use(a, b):
+        numerator = max(a, b)
+        denominator = min(a, b)
         if denominator==0:
             return 1 # always already satisfied
         return int(numerator/denominator)
@@ -49,10 +49,12 @@ class Power(Junction):
         return base**exponent
 
 class Binomial(Junction):
-    isSymmetric = False
+    isSymmetric = True
     
-    def use(n, k):
-        if k>n or max(k, n-k).bit_length() * min(k, n-k) > maxPowerValue:
+    def use(a, b):
+        n = max(a, b)
+        k = min(a, b)
+        if max(k, n-k).bit_length() * min(k, n-k) > maxPowerValue:
             return 1 # always already satisfied
         return int(round(binom(n, k)))
     
@@ -81,11 +83,11 @@ if __name__ == "__main__":
         numberNodes : List[List] = [[number, None, None, "root"] for number in numbers]
         startingIndices = [0]
 
-    targetNumber = 3026
+    targetNumber = 1.5
     found = False
     if targetNumber in numbers:
         for node in numberNodes:
-            if node.number == targetNumber:
+            if node[0] == targetNumber:
                 print(node)
                 found = True
     while not found:
@@ -102,7 +104,7 @@ if __name__ == "__main__":
                     node2 = numberNodes[index2]
                     for func in funcs:
                         if func.isSymmetric:
-                            result = func.use(node1.number, node2.number)
+                            result = func.use(node1[0], node2[0])
                             if result not in numbers:
                                 numbers.add(result)
                                 newNode = [result, index1, index2, func.__name__]
@@ -112,7 +114,7 @@ if __name__ == "__main__":
                                     found = True
                                 numberNodes += [newNode]
                         else:
-                            result = func.use(node1.number, node2.number)
+                            result = func.use(node1[0], node2[0])
                             if result not in numbers:
                                 numbers.add(result)
                                 newNode = [result, index1, index2, func.__name__]
@@ -121,7 +123,7 @@ if __name__ == "__main__":
                                     print()
                                     found = True
                                 numberNodes += [newNode]
-                            result = func.use(node2.number, node1.number)
+                            result = func.use(node2[0], node1[0])
                             if result not in numbers:
                                 numbers.add(result)
                                 newNode = [result, index2, index1, func.__name__]
@@ -136,4 +138,4 @@ if __name__ == "__main__":
             pickle.dump(numberNodes, file)
         with open(indicesFile, "wb") as file:
             pickle.dump(startingIndices, file)
-    print(datetime.now() - startTime)
+        print(datetime.now() - startTime)
