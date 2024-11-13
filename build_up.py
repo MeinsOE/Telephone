@@ -58,7 +58,7 @@ class Binomial(Junction):
         return int(round(binom(n, k)))
 
 class NumberGraph:
-    def __init__(self, numberNodes, funcs, indices=None, dtype=np.uint64):
+    def __init__(self, numberNodes, funcs, indices=None, dtype=np.uint32):
         self.numberNodes = np.array(numberNodes, dtype=dtype)
         self.funcs = funcs
         if indices is None:
