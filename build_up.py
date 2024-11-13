@@ -1,3 +1,4 @@
+from datetime import datetime
 from scipy.special import binom
 from typing import List
 import pickle
@@ -75,6 +76,7 @@ class NumberNode:
 funcs = [Binomial, Power, Divide, Subtract, Multiply, Add]
 
 if __name__ == "__main__":
+    startTime = datetime.now()
     numbersFile = "build_up_data/numbers.pkl"
     nodesFile = "build_up_data/nodes.pkl"
     indicesFile = "build_up_data/indices.pkl"
@@ -90,7 +92,7 @@ if __name__ == "__main__":
         numberNodes : List[NumberNode] = [NumberNode.root(number) for number in numbers]
         startingIndices = [0]
 
-    targetNumber = 31445304
+    targetNumber = 3026
     found = False
     if targetNumber in numbers:
         for node in numberNodes:
@@ -145,3 +147,4 @@ if __name__ == "__main__":
             pickle.dump(numberNodes, file)
         with open(indicesFile, "wb") as file:
             pickle.dump(startingIndices, file)
+    print(datetime.now() - startTime)
