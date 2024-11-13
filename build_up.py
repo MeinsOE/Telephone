@@ -1,3 +1,4 @@
+from datetime import datetime
 import numpy as np
 from scipy.special import binom
 from typing import List
@@ -67,11 +68,19 @@ class NumberGraph:
         self.dtype=dtype
 
     def print(self, index):
-        numberNode = self.numberNodes[index]
+        print(self.indexToStr(index))
+
+    def printNode(self, numberNode):
+        print(self.nodeToStr(numberNode))
+
+    def indexToStr(self, index):
+        return self.nodeToStr(self.numberNodes[index])
+
+    def nodeToStr(self, numberNode):
         if numberNode[Column.FUNC] == len(self.funcs):
-            print(f"{numberNode[Column.NUMBER]}")
+            return f"{numberNode[Column.NUMBER]}"
         else:
-            print(f" {numberNode[Column.NUMBER]} = {numberNode[Column.FUNC]}({self.print(numberNode[Column.CHILD1])}, {self.print(numberNode[Column.CHILD2])}) ")
+            return f" {numberNode[Column.NUMBER]} = {numberNode[Column.FUNC]}({self.indexToStr(numberNode[Column.CHILD1])}, {self.indexToStr(numberNode[Column.CHILD2])}) "
 
     def indexOf(self, number:int) -> int:
         for i in range(len(self.indices)-1):
@@ -109,10 +118,10 @@ class NumberGraph:
                 for index2 in range(self.indices[-rangeIndex-2], self.indices[-rangeIndex-1]):
                     for funcIndex, func in enumerate(self.funcs):
                         if func.isSymmetric:
-                            self.checkFunc(target, index1, index2, funcIndex, func)
+                            found = self.checkFunc(target, index1, index2, funcIndex, func) or found
                         else:
-                            self.checkFunc(target, index1, index2, funcIndex, func)
-                            self.checkFunc(target, index2, index1, funcIndex, func)
+                            found = self.checkFunc(target, index1, index2, funcIndex, func) or found
+                            found = self.checkFunc(target, index2, index1, funcIndex, func) or found
         self.addNewNodes()
         return found
 
@@ -122,8 +131,10 @@ class NumberGraph:
         if self.indexOf(result) == -1:
             index = self.insertNewNode(newNode)
             if index != -1 and result == targetNumber:
-                self.print(index)
+                self.printNode(newNode)
                 print()
+                return True
+        return False
     
     def insertNewNode(self, newNode) -> int:
         if len(self.newNodes) == 0:
@@ -172,15 +183,17 @@ class Column():
 funcs = [Binomial, Power, Divide, Subtract, Multiply, Add]
 
 if __name__ == "__main__":
+    startTime = datetime.now()
     numberGraph = NumberGraph([[number, 0, 0, len(funcs)] for number in range(0, 10)], funcs)
     dirPath = "build_up_data"
     numberGraph.tryLoad(dirPath)
 
-    target = 31445304
+    target = 1.5
     found = numberGraph.searchAndPrint(target) != -1
     while not found:
         print(f"complexity={len(numberGraph.indices)}")
         print(f"{numberGraph.indices[-1]}")
         print()
-        numberGraph.addComplexity(target)
+        found = numberGraph.addComplexity(target)
         numberGraph.save(dirPath)
+        print(datetime.now() - startTime)
