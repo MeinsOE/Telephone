@@ -72,7 +72,7 @@ class NumberNode:
         else:
             return f" {self.number} = {self.method}({numberNodes[self.childIndex1].__str__()}, {numberNodes[self.childIndex2].__str__()}) "
 
-funcs = [Add, Multiply, Subtract, Divide, Power, Binomial]
+funcs = [Binomial, Power, Divide, Subtract, Multiply, Add]
 
 if __name__ == "__main__":
     numbersFile = "build_up_data/numbers.pkl"
