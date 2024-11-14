@@ -112,7 +112,7 @@ class FindPhoneNumber:
     def scanSymmetricNonMonotoneFunc(self, rangeIndex, func):
         for index1 in range(self.startingIndices[rangeIndex], self.startingIndices[rangeIndex+1]):
             node1 = self.numberNodes[index1]
-            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            print (f"\033[APair {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}       ")
             for index2 in range(self.startingIndices[-rangeIndex-2], self.startingIndices[-rangeIndex-1]):
                 node2 = self.numberNodes[index2]
                 result = func.use(node1[0], node2[0])
@@ -130,7 +130,7 @@ class FindPhoneNumber:
         break1 = False
         while not break1 and index1 < self.startingIndices[rangeIndex+1]:
             node1 = self.numberNodes[index1]
-            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            print (f"\033[APair {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}       ")
             index2 = self.startingIndices[-rangeIndex-2]
             break2 = False
             while not break2 and index2 < self.startingIndices[-rangeIndex-1]:
@@ -155,7 +155,7 @@ class FindPhoneNumber:
     def scanAsymmetricNonMonotoneFunc(self, rangeIndex, func):
         for index1 in range(self.startingIndices[rangeIndex], self.startingIndices[rangeIndex+1]):
             node1 = self.numberNodes[index1]
-            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            print (f"\033[APair {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}       ")
             for index2 in range(self.startingIndices[-rangeIndex-2], self.startingIndices[-rangeIndex-1]):
                 node2 = self.numberNodes[index2]
                 result = func.use(node1[0], node2[0])
@@ -182,7 +182,7 @@ class FindPhoneNumber:
         break1 = False
         while not break1 and index1 < self.startingIndices[rangeIndex+1]:
             node1 = self.numberNodes[index1]
-            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            print (f"\033[APair {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}       ")
             index2 = self.startingIndices[-rangeIndex-2]
             break2Order1 = False
             break2Order2 = False
@@ -218,13 +218,12 @@ class FindPhoneNumber:
     
     def addComplexity(self):
         self.startingIndices += [len(self.numberNodes)]
-        print(f"complexity={len(self.startingIndices)}")
-        print(f"{self.startingIndices[-1]}")
+        print(f"Complexity={len(self.startingIndices)} ({self.startingIndices[-1]})")
         print()
         print()
         print()
         for rangeIndex in range(len(self.startingIndices)//2):
-            print(f"\033[A\033[A\033[AGroup {rangeIndex+1}")
+            print(f"\033[A\033[A\033[AGroup {rangeIndex+1} / {len(self.startingIndices)//2}")
             print()
             print()
             for i, func in enumerate(self.funcs):
