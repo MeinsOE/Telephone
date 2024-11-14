@@ -15,13 +15,18 @@ class Add(Junction):
     isSymmetric = True
     
     def use(a, b):
+        if a+b >= maxNumber:
+            return -1
         return a+b
 
 class Multiply(Junction):
     isSymmetric = True
 
     def use(a, b):
-        return a*b
+        p = a*b
+        if p >= maxNumber:
+            return -1
+        return p
 
 class Subtract(Junction):
     isSymmetric = True
@@ -36,7 +41,7 @@ class Divide(Junction):
         numerator = max(a, b)
         denominator = min(a, b)
         if denominator==0:
-            return 1 # always already satisfied
+            return -1
         return numerator//denominator
 
 maxPower = 30
@@ -47,7 +52,7 @@ class Power(Junction):
     
     def use(base, exponent):
         if base.bit_length() * exponent > maxPower:
-            return 1 # always already satisfied
+            return -1
         return base**exponent
 
 class Binomial(Junction):
@@ -56,8 +61,8 @@ class Binomial(Junction):
     def use(a, b):
         n = max(a, b)
         k = min(a, b)
-        if max(k, n-k).bit_length() * min(k, n-k) > maxPower:
-            return 1 # always already satisfied
+        if (max(k, n-k)+1).bit_length() * min(k, n-k) > maxPower:
+            return -1
         return int(round(binom(n, k)))
     
 def nodeToStr(node):
@@ -98,7 +103,6 @@ if __name__ == "__main__":
         startingIndices += [len(numberNodes)]
         print(f"complexity={len(startingIndices)}")
         print(f"{startingIndices[-1]}")
-        print(len(startingIndices)//2)
         print()
         for rangeIndex in range(len(startingIndices)//2):
             for index1 in range(startingIndices[rangeIndex], startingIndices[rangeIndex+1]):
@@ -109,7 +113,7 @@ if __name__ == "__main__":
                     for func in funcs:
                         if func.isSymmetric:
                             result = func.use(node1[0], node2[0])
-                            if result < maxNumber and  not numberBits[result]:
+                            if result != -1 and not numberBits[result]:
                                 numberBits[result] = 1
                                 newNode = [result, index1, index2, func.__name__]
                                 if result == targetNumber:
