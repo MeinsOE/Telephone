@@ -109,10 +109,10 @@ class FindPhoneNumber:
         else:
             return f" {node[0]} = {node[3]}({self.nodeToStr(self.numberNodes[node[1]])}, {self.nodeToStr(self.numberNodes[node[2]])}) "
 
-    def scanSymmetricFunc(self, rangeIndex, func):
+    def scanSymmetricNonMonotoneFunc(self, rangeIndex, func):
         for index1 in range(self.startingIndices[rangeIndex], self.startingIndices[rangeIndex+1]):
             node1 = self.numberNodes[index1]
-            print (f"\033[A{rangeIndex+1}: {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
             for index2 in range(self.startingIndices[-rangeIndex-2], self.startingIndices[-rangeIndex-1]):
                 node2 = self.numberNodes[index2]
                 result = func.use(node1[0], node2[0])
@@ -125,14 +125,39 @@ class FindPhoneNumber:
                         self.found = True
                     self.numberNodes += [newNode]
 
-    def scanAsymmetricFunc(self, rangeIndex, func):
+    def scanSymmetricMonotoneFunc(self, rangeIndex, func):
+        index1 = self.startingIndices[rangeIndex]
+        break1 = False
+        while not break1 and index1 < self.startingIndices[rangeIndex+1]:
+            node1 = self.numberNodes[index1]
+            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            index2 = self.startingIndices[-rangeIndex-2]
+            break2 = False
+            while not break2 and index2 < self.startingIndices[-rangeIndex-1]:
+                node2 = self.numberNodes[index2]
+                result = func.use(node1[0], node2[0])
+                if result == -1:
+                    break2 = True
+                elif not self.numberBits[result]:
+                    self.numberBits[result] = 1
+                    newNode = [result, index1, index2, func.__name__]
+                    if result == self.targetNumber:
+                        print(newNode)
+                        print()
+                        self.found = True
+                    self.numberNodes += [newNode]
+                index2 += 1
+            if index2 == self.startingIndices[-rangeIndex-2]:
+                break1 = True
+            else:
+                index1 += 1
+
+    def scanAsymmetricNonMonotoneFunc(self, rangeIndex, func):
         for index1 in range(self.startingIndices[rangeIndex], self.startingIndices[rangeIndex+1]):
             node1 = self.numberNodes[index1]
-            print (f"\033[A{rangeIndex+1}: {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
             for index2 in range(self.startingIndices[-rangeIndex-2], self.startingIndices[-rangeIndex-1]):
                 node2 = self.numberNodes[index2]
-                if index1==index2==7:
-                    print("error")
                 result = func.use(node1[0], node2[0])
                 if result != -1 and not self.numberBits[result]:
                     self.numberBits[result] = 1
@@ -151,18 +176,71 @@ class FindPhoneNumber:
                         print()
                         self.found = True
                     self.numberNodes += [newNode]
+
+    def scanAsymmetricMonotoneFunc(self, rangeIndex, func):
+        index1 = self.startingIndices[rangeIndex]
+        break1 = False
+        while not break1 and index1 < self.startingIndices[rangeIndex+1]:
+            node1 = self.numberNodes[index1]
+            print (f"\033[A {index1 - self.startingIndices[rangeIndex] + 1} / {self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex]}")
+            index2 = self.startingIndices[-rangeIndex-2]
+            break2Order1 = False
+            break2Order2 = False
+            while not (break2Order1 and break2Order2) and index2 < self.startingIndices[-rangeIndex-1]:
+                node2 = self.numberNodes[index2]
+                result = func.use(node1[0], node2[0])
+                if result == -1:
+                    break2Order1 = True
+                elif not self.numberBits[result]:
+                    self.numberBits[result] = 1
+                    newNode = [result, index1, index2, func.__name__]
+                    if result == self.targetNumber:
+                        print(newNode)
+                        print()
+                        self.found = True
+                    self.numberNodes += [newNode]
+                result = func.use(node2[0], node1[0])
+                if result == -1:
+                    break2Order2 = True
+                elif not self.numberBits[result]:
+                    self.numberBits[result] = 1
+                    newNode = [result, index2, index1, func.__name__]
+                    if result == self.targetNumber:
+                        print(newNode)
+                        print()
+                        self.found = True
+                    self.numberNodes += [newNode]
+                index2 += 1
+            if index2 == self.startingIndices[-rangeIndex-2]:
+                break1 = True
+            else:
+                index1 += 1
     
     def addComplexity(self):
         self.startingIndices += [len(self.numberNodes)]
         print(f"complexity={len(self.startingIndices)}")
         print(f"{self.startingIndices[-1]}")
         print()
+        print()
+        print()
         for rangeIndex in range(len(self.startingIndices)//2):
-            for func in self.funcs:
+            print(f"\033[A\033[A\033[AGroup {rangeIndex+1}")
+            print()
+            print()
+            for i, func in enumerate(self.funcs):
+                print(f"\033[A\033[AFunc {i+1} / {len(self.funcs)}")
+                print()
                 if func.isSymmetric:
-                    self.scanSymmetricFunc(rangeIndex, func)
+                    if func.isMonotone:
+                        self.scanSymmetricMonotoneFunc(rangeIndex, func)
+                    else:
+                        self.scanSymmetricNonMonotoneFunc(rangeIndex, func)
                 else:
-                    self.scanAsymmetricFunc(rangeIndex, func)
+                    if func.isMonotone:
+                        self.scanAsymmetricMonotoneFunc(rangeIndex, func)
+                    else:
+                        self.scanAsymmetricNonMonotoneFunc(rangeIndex, func)
+        self.numberNodes[self.startingIndices[-1]:] = sorted(self.numberNodes[self.startingIndices[-1]:], key=lambda node: node[0])
         with open(self.numbersFile, "wb") as file:
             pickle.dump(self.numberBits, file)
         with open(self.nodesFile, "wb") as file:
