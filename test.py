@@ -2,24 +2,18 @@ import timeit
 
 maxPower = 30
 maxNumber = 2**maxPower
-stepSize = maxNumber//100
+stepSize = maxNumber//10000
 
 def loop(func):
-    for a in range(0, maxNumber, stepSize):
-        for b in range(0, maxNumber, stepSize):
-            func(a, b)
+    for a in range(-maxNumber, maxNumber, stepSize):
+        func(max(a, -1))
 
-def withoutBitLength(a, b):
-    p = a**b
-    if p > maxNumber:
-        return 1
-    return p
+def optionA(a):
+    return a > 0
 
-def withBitLength(a, b):
-    if a.bit_length() * b > maxPower:
-        return 1
-    return a**b
+def optionB(a):
+    return a != -1
 
 # Measure time
-print("Time with bit_length variable:", timeit.timeit("loop(withBitLength)", globals=globals(), number=1))
-print("Time without bit_length variable:", timeit.timeit("loop(withoutBitLength)", globals=globals(), number=1))
+print("Option A:", timeit.timeit("loop(optionA)", globals=globals(), number=1000))
+print("Option B:", timeit.timeit("loop(optionB)", globals=globals(), number=1000))
