@@ -123,7 +123,7 @@ if __name__ == "__main__":
                                 numberNodes += [newNode]
                         else:
                             result = func.use(node1[0], node2[0])
-                            if result < maxNumber and  not numberBits[result]:
+                            if result != -1 and not numberBits[result]:
                                 numberBits[result] = 1
                                 newNode = [result, index1, index2, func.__name__]
                                 if result == targetNumber:
@@ -132,7 +132,7 @@ if __name__ == "__main__":
                                     found = True
                                 numberNodes += [newNode]
                             result = func.use(node2[0], node1[0])
-                            if result < maxNumber and  not numberBits[result]:
+                            if result != -1 and not numberBits[result]:
                                 numberBits[result] = 1
                                 newNode = [result, index2, index1, func.__name__]
                                 if result == targetNumber:
