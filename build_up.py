@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 from scipy.special import binom
 from typing import List
 import pickle
@@ -99,12 +100,17 @@ class FindPhoneNumber:
         self.funcs : List[Junction] = [Binomial, Power, Divide, Subtract, Multiply, Add]
         if self.numberBits[targetNumber]:
             for i in range(len(self.startingIndices)-1):
-                for j in range((self.startingIndices[i+1] - self.startingIndices[i])//maxStoreNumber):
+                for j in range((self.startingIndices[i+1] - self.startingIndices[i])//maxStoreNumber + 1):
                     nodes = self.getFile(i, j)
                     for node in nodes:
                         if node[0] == targetNumber:
                             print(self.nodeToStr(node))
                             self.found = True
+                            break
+                    if self.found:
+                        break
+                if self.found:
+                    break
     
     def saveRest(self, nodes, complexity, fileIndex):
         with open(self.nodesFileBase.replace("$$",f"{complexity}-{fileIndex}"), "wb") as file:
@@ -136,17 +142,19 @@ class FindPhoneNumber:
             return pickle.load(file)
 
 
-    def scanSymmetricNonMonotoneFunc(self, nodes1, nodes2, func):
+    def scanSymmetricNonMonotoneFunc(self, nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex):
+        func = self.funcs[funcIndex]
         returnNodes = []
         for index1 in range(len(nodes1)):
             node1 = nodes1[index1]
-            print (f"\033[APair {index1 + 1} / {len(nodes1)}       ")
             for index2 in range(len(nodes2)):
+                if index2 % 100 == 0:
+                    self.printStatus(rangeIndex, filesIndex, filesLimit, funcIndex, index1 * len(nodes2) + index2, len(nodes1) * len(nodes2))
                 node2 = nodes2[index2]
                 result = func.use(node1[0], node2[0])
                 if result != -1 and not self.numberBits[result]:
                     self.numberBits[result] = 1
-                    newNode = [result, index1, index2, func.__name__]
+                    newNode = [result, index1 + indexOffset1, index2 + indexOffset2, func.__name__]
                     if result == self.targetNumber:
                         print(self.nodeToStr(newNode))
                         print()
@@ -154,23 +162,25 @@ class FindPhoneNumber:
                     returnNodes += [newNode]
         return returnNodes
 
-    def scanSymmetricMonotoneFunc(self, nodes1, nodes2, func):
+    def scanSymmetricMonotoneFunc(self, nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex):
+        func = self.funcs[funcIndex]
         returnNodes = []
         index1 = 0
         break1 = False
         while not break1 and index1 < len(nodes1):
             node1 = nodes1[index1]
-            print (f"\033[APair {index1 + 1} / {len(nodes1)}       ")
             index2 = 0
             break2 = False
             while not break2 and index2 < len(nodes2):
+                if index2 % 100 == 0:
+                    self.printStatus(rangeIndex, filesIndex, filesLimit, funcIndex, index1 * len(nodes2) + index2, len(nodes1) * len(nodes2))
                 node2 = nodes2[index2]
                 result = func.use(node1[0], node2[0])
                 if result == -1:
                     break2 = True
                 elif not self.numberBits[result]:
                     self.numberBits[result] = 1
-                    newNode = [result, index1, index2, func.__name__]
+                    newNode = [result, index1 + indexOffset1, index2 + indexOffset2, func.__name__]
                     if result == self.targetNumber:
                         print(self.nodeToStr(newNode))
                         print()
@@ -183,17 +193,19 @@ class FindPhoneNumber:
                 index1 += 1
         return returnNodes
 
-    def scanAsymmetricNonMonotoneFunc(self, nodes1, nodes2, func):
+    def scanAsymmetricNonMonotoneFunc(self, nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex):
+        func = self.funcs[funcIndex]
         returnNodes = []
         for index1 in range(len(nodes1)):
             node1 = nodes1[index1]
-            print (f"\033[APair {index1 + 1} / {len(nodes1)}       ")
             for index2 in range(len(nodes2)):
+                if index2 % 100 == 0:
+                    self.printStatus(rangeIndex, filesIndex, filesLimit, funcIndex, index1 * len(nodes2) + index2, len(nodes1) * len(nodes2))
                 node2 = nodes2[index2]
                 result = func.use(node1[0], node2[0])
                 if result != -1 and not self.numberBits[result]:
                     self.numberBits[result] = 1
-                    newNode = [result, index1, index2, func.__name__]
+                    newNode = [result, index1 + indexOffset1, index2 + indexOffset2, func.__name__]
                     if result == self.targetNumber:
                         print(self.nodeToStr(newNode))
                         print()
@@ -202,7 +214,7 @@ class FindPhoneNumber:
                 result = func.use(node2[0], node1[0])
                 if result != -1 and not self.numberBits[result]:
                     self.numberBits[result] = 1
-                    newNode = [result, index2, index1, func.__name__]
+                    newNode = [result, index2 + indexOffset2, index1 + indexOffset1, func.__name__]
                     if result == self.targetNumber:
                         print(self.nodeToStr(newNode))
                         print()
@@ -210,24 +222,26 @@ class FindPhoneNumber:
                     returnNodes += [newNode]
         return returnNodes
 
-    def scanAsymmetricMonotoneFunc(self, nodes1, nodes2, func):
+    def scanAsymmetricMonotoneFunc(self, nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex):
+        func = self.funcs[funcIndex]
         returnNodes = []
         index1 = 0
         break1 = False
         while not break1 and index1 < len(nodes1):
             node1 = nodes1[index1]
-            print (f"\033[APair {index1 + 1} / {len(nodes1)}       ")
             index2 = 0
             break2Order1 = False
             break2Order2 = False
             while not (break2Order1 and break2Order2) and index2 < len(nodes2):
+                if index2 % 100 == 0:
+                    self.printStatus(rangeIndex, filesIndex, filesLimit, funcIndex, index1 * len(nodes2) + index2, len(nodes1) * len(nodes2))
                 node2 = nodes2[index2]
                 result = func.use(node1[0], node2[0])
                 if result == -1:
                     break2Order1 = True
                 elif not self.numberBits[result]:
                     self.numberBits[result] = 1
-                    newNode = [result, index1, index2, func.__name__]
+                    newNode = [result, index1 + indexOffset1, index2 + indexOffset2, func.__name__]
                     if result == self.targetNumber:
                         print(self.nodeToStr(newNode))
                         print()
@@ -238,7 +252,7 @@ class FindPhoneNumber:
                     break2Order2 = True
                 elif not self.numberBits[result]:
                     self.numberBits[result] = 1
-                    newNode = [result, index2, index1, func.__name__]
+                    newNode = [result, index2 + indexOffset2, index1 + indexOffset1, func.__name__]
                     if result == self.targetNumber:
                         print(self.nodeToStr(newNode))
                         print()
@@ -253,54 +267,54 @@ class FindPhoneNumber:
     
     def addComplexity(self):
         fileIndex = 0
-        newStartingIndex = 0
-        print(f"Complexity={len(self.startingIndices)} ({self.startingIndices[-1]})                ")
-        print()
-        print()
-        print()
-        print()
+        newStartingIndex = self.startingIndices[-1]
         for rangeIndex in range(len(self.startingIndices)//2):
             otherIndex = len(self.startingIndices) - rangeIndex - 2
             newNodes = []
-            print(f"\033[A\033[A\033[A\033[AGroup {rangeIndex+1} / {len(self.startingIndices)//2}               ")
-            print()
-            print()
-            print()
             limitIndex1 = (self.startingIndices[rangeIndex+1] - self.startingIndices[rangeIndex])//maxStoreNumber + 1
             limitIndex2 = (self.startingIndices[otherIndex+1] - self.startingIndices[otherIndex])//maxStoreNumber + 1
             for fileIndex1 in range(limitIndex1):
                 nodes1 = self.getFile(rangeIndex, fileIndex1)
+                indexOffset1 = self.startingIndices[rangeIndex] + fileIndex1 * maxStoreNumber
                 for fileIndex2 in range(limitIndex2):
                     nodes2 = self.getFile(otherIndex, fileIndex2)
-                    print(f"\033[A\033[A\033[ACombs {fileIndex1 * limitIndex2 + fileIndex2 + 1} / {limitIndex1 * limitIndex2}")
-                    print()
-                    print()
-                    for i, func in enumerate(self.funcs):
-                        print(f"\033[A\033[AFunc {i+1} / {len(self.funcs)}               ")
-                        print()
+                    indexOffset2 = self.startingIndices[otherIndex] + fileIndex2 * maxStoreNumber
+                    filesIndex = fileIndex1 * limitIndex2 + fileIndex2
+                    filesLimit = limitIndex1 * limitIndex2
+                    for funcIndex, func in enumerate(self.funcs):
                         if func.isSymmetric:
                             if func.isMonotone:
-                                newNodes += self.scanSymmetricMonotoneFunc(nodes1, nodes2, func)
+                                newNodes += self.scanSymmetricMonotoneFunc(nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex)
                             else:
-                                newNodes += self.scanSymmetricNonMonotoneFunc(nodes1, nodes2, func)
+                                newNodes += self.scanSymmetricNonMonotoneFunc(nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex)
                         else:
                             if func.isMonotone:
-                                newNodes += self.scanAsymmetricMonotoneFunc(nodes1, nodes2, func)
+                                newNodes += self.scanAsymmetricMonotoneFunc(nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex)
                             else:
-                                newNodes += self.scanAsymmetricNonMonotoneFunc(nodes1, nodes2, func)
+                                newNodes += self.scanAsymmetricNonMonotoneFunc(nodes1, nodes2, indexOffset1, indexOffset2, rangeIndex, filesIndex, filesLimit, funcIndex)
                         while len(newNodes) >= maxStoreNumber:
                             toSave = newNodes[:maxStoreNumber]
                             newNodes = newNodes[maxStoreNumber:]
-                            self.saveFile(toSave, len(self.startingIndices)-1, fileIndex)
+                            self.saveFile(sorted(toSave), len(self.startingIndices)-1, fileIndex)
                             fileIndex += 1
                             newStartingIndex += maxStoreNumber
-        self.saveRest(newNodes, len(self.startingIndices)-1, fileIndex)
         newStartingIndex += len(newNodes)
         self.startingIndices += [newStartingIndex]
+        self.saveRest(sorted(newNodes), len(self.startingIndices)-2, fileIndex) # since the next index is already added
         print(datetime.now() - self.startTime)
         print()
+    
+    def printStatus(self, rangeIndex, filesIndex, filesLimit, funcIndex, pairIndex, pairLimit):
+        spacing = "                    "
+        print(f"Complexity={len(self.startingIndices)} ({self.startingIndices[-1]}){spacing}")
+        print(f"Group {rangeIndex+1} / {len(self.startingIndices)//2}{spacing}")
+        print(f"Combs {filesIndex+1} / {filesLimit}{spacing}")
+        print(f"Func {funcIndex+1} / {len(self.funcs)}{spacing}")
+        print(f"Pair {pairIndex+1} / {pairLimit}{spacing}")
+        print("\033[A\033[A\033[A\033[A\033[A", end="")
+
 
 if __name__ == "__main__":
     findPhoneNumber = FindPhoneNumber(9851722)
-    while True:
+    while not findPhoneNumber.found:
         findPhoneNumber.addComplexity()
